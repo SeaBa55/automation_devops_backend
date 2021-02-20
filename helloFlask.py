@@ -1,47 +1,47 @@
-from __future__ import print_function
-from flask import Flask
-import mysql.connector
-from mysql.connector import errorcode
+import os
+from flask import Flask, flash, request, redirect, url_for
+from werkzeug.utils import secure_filename
+UPLOAD_FOLDER = '/etc'
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 app = Flask(__name__)
-
-@app.route('/')
-def hello_world():
-	cnx = mysql.connector.connect(user='monty', password='some_pass', host='192.168.0.3', database='menagerie')
-	DB_NAME = 'menagerie'
-	TABLES = {}
-	TABLES['employees'] = (
-	    "CREATE TABLE `employees` ("
-	    "  `emp_no` int(11) NOT NULL AUTO_INCREMENT,"
-	    "  `birth_date` date NOT NULL,"
-	    "  `first_name` varchar(14) NOT NULL,"
-	    "  `last_name` varchar(16) NOT NULL,"
-	    "  `gender` enum('M','F') NOT NULL,"
-	    "  `hire_date` date NOT NULL,"
-	    "  PRIMARY KEY (`emp_no`)"
-	    ") ENGINE=InnoDB")
-	TABLES['departments'] = (
-	    "CREATE TABLE `departments` ("
-	    "  `dept_no` char(4) NOT NULL,"
-	    "  `dept_name` varchar(40) NOT NULL,"
-	    "  PRIMARY KEY (`dept_no`), UNIQUE KEY `dept_name` (`dept_name`)"
-	    ") ENGINE=InnoDB")
-	cursor = cnx.cursor()
-	for table_name in TABLES:
-	    table_description = TABLES[table_name]
-	    try:
-	        print("Creating table {}: ".format(table_name), end='')
-	        cursor.execute(table_description)
-	    except mysql.connector.Error as err:
-	        if err.errno == errorcode.ER_TABLE_EXISTS_ERROR:
-	            print("already exists.")
-	        else:
-	            print(err.msg)
-	    else:
-	        print("OK")
-	cursor.close()	
-	cnx.close()	
-	return("Hello World")
-
-@app.route('/test')
-def testWorld():
-    return 'test, World!'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+@app.route('/', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit an empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('uploaded_file',
+                                    filename=filename))
+    return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    '''
+#from flask import Flask
+#app = Flask(__name__)
+#
+#@app.route('/')
+#def hello_world():
+#	return("Hello World")
+#
+#@app.route('/test')
+#def testWorld():
+#    return 'test, World!'
