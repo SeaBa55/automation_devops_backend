@@ -14,13 +14,21 @@
 //        }
 //    }
 //}
-pipeline {
-    agent { docker { image 'python:3.5.1' } }
-    stages {
-        stage('build') {
-            steps {
-                sh 'python --version'
-            }
+//pipeline {
+//    agent { docker { image 'python:3.5.1' } }
+//    stages {
+//        stage('build') {
+//            steps {
+//                sh 'python --version'
+//            }
+//        }
+//    }
+//}
+node("myAgent") {
+    timeout(unit: 'SECONDS', time: 5) {
+        stage("One"){
+            sleep 10
+            echo 'hello'
         }
     }
 }
